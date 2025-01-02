@@ -35,9 +35,9 @@ Requires-Dist: gym; extra == "rl-games"
 Provides-Extra: rsl-rl
 Requires-Dist: rsl-rl@ git+https://github.com/leggedrobotics/rsl_rl.git ; extra == "rsl-rl"
 Provides-Extra: all
+Requires-Dist: skrl>=1.2.0; extra == "all"
 Requires-Dist: stable-baselines3>=2.1; extra == "all"
+Requires-Dist: robomimic@ git+https://github.com/ARISE-Initiative/robomimic.git ; extra == "all"
+Requires-Dist: rsl-rl@ git+https://github.com/leggedrobotics/rsl_rl.git ; extra == "all"
 Requires-Dist: gym; extra == "all"
 Requires-Dist: rl-games==1.6.1; extra == "all"
-Requires-Dist: skrl>=1.2.0; extra == "all"
-Requires-Dist: rsl-rl@ git+https://github.com/leggedrobotics/rsl_rl.git ; extra == "all"
-Requires-Dist: robomimic@ git+https://github.com/ARISE-Initiative/robomimic.git ; extra == "all"

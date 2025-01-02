@@ -20,6 +20,8 @@ PhysX. This helps perform parallelized computation of the inverse kinematics.
 
 import argparse
 
+import numpy as np
+
 from omni.isaac.lab.app import AppLauncher
 
 # add argparse arguments
@@ -61,7 +63,7 @@ from omni.isaac.lab.utils.math import subtract_frame_transforms
 # Pre-defined configs
 ##
 from omni.isaac.lab_assets import (
-    GALAXEA_R1_HIGH_PD_CFG,
+    GALAXEA_R1_FIXBASE_HIGH_PD_CFG,
     GALAXEA_R1_HIGH_PD_GRIPPER_CFG,
 )  # isort:skip
 
@@ -84,8 +86,8 @@ class IkSceneCfg(InteractiveSceneCfg):
     )
 
     # object
-    target_frame = AssetBaseCfg(
-        prim_path="{ENV_REGEX_NS}/TargetFrame",
+    target_frame_left = AssetBaseCfg(
+        prim_path="{ENV_REGEX_NS}/TargetFrameLeft",
         spawn=sim_utils.CuboidCfg(
             size=(0.1, 0.1, 0.1),
         ),
@@ -94,10 +96,19 @@ class IkSceneCfg(InteractiveSceneCfg):
             rot=(9.6247e-05, 9.7698e-01, -2.1335e-01, 3.9177e-04),
         ),
     )
-
+    target_frame_right = AssetBaseCfg(
+        prim_path="{ENV_REGEX_NS}/TargetFrameRight",
+        spawn=sim_utils.CuboidCfg(
+            size=(0.1, 0.1, 0.1),
+        ),
+        init_state=AssetBaseCfg.InitialStateCfg(
+            pos=(0.3864, -0.5237, 1.1475),
+            rot=(9.6247e-05, 9.7698e-01, -2.1335e-01, 3.9177e-04),
+        ),
+    )
     # articulation
     if args_cli.robot == "R1":
-        robot = GALAXEA_R1_HIGH_PD_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
+        robot = GALAXEA_R1_FIXBASE_HIGH_PD_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
     else:
         raise ValueError(
             f"Robot {args_cli.robot} is not supported. Valid: R1, R1StrongGripper"
@@ -109,14 +120,21 @@ def run_simulator(sim: sim_utils.SimulationContext, scene: InteractiveScene):
     # Extract scene entities
     # note: we only do this here for readability.
     robot = scene["robot"]
-    target_frame = scene["target_frame"]
+    target_frame_left = scene["target_frame_left"]
+    target_frame_right = scene["target_frame_right"]
 
     # Create controller
-    diff_ik_cfg = DifferentialIKControllerCfg(
+    diff_ik_cfg_left = DifferentialIKControllerCfg(
         command_type="pose", use_relative_mode=False, ik_method="dls"
     )
-    diff_ik_controller = DifferentialIKController(
-        diff_ik_cfg, num_envs=scene.num_envs, device=sim.device
+    diff_ik_controller_left = DifferentialIKController(
+        diff_ik_cfg_left, num_envs=scene.num_envs, device=sim.device
+    )
+    diff_ik_cfg_right = DifferentialIKControllerCfg(
+        command_type="pose", use_relative_mode=False, ik_method="dls"
+    )
+    diff_ik_controller_right = DifferentialIKController(
+        diff_ik_cfg_right, num_envs=scene.num_envs, device=sim.device
     )
 
     # Markers
@@ -128,17 +146,28 @@ def run_simulator(sim: sim_utils.SimulationContext, scene: InteractiveScene):
     left_goal_marker = VisualizationMarkers(
         frame_marker_cfg.replace(prim_path="/Visuals/ee_goal/left")
     )
+    right_ee_marker = VisualizationMarkers(
+        frame_marker_cfg.replace(prim_path="/Visuals/ee_current/right")
+    )
+    right_goal_marker = VisualizationMarkers(
+        frame_marker_cfg.replace(prim_path="/Visuals/ee_goal/right")
+    )
 
     # Define goals for the arm
     # init pose: 0.3864, 0.5237, 1.1475, 9.6247e-05,  9.7698e-01, -2.1335e-01,  3.9177e-04
-    target_position, target_orientation = target_frame.get_local_poses()
+    target_position_left, target_orientation_left = target_frame_left.get_local_poses()
+    target_position_right, target_orientation_right = target_frame_right.get_local_poses()
 
     # Track the given command
     # Create buffers to store actions
     left_ik_commands = torch.zeros(
-        scene.num_envs, diff_ik_controller.action_dim, device=robot.device
+        scene.num_envs, diff_ik_controller_left.action_dim, device=robot.device
     )
-    left_ik_commands = torch.cat([target_position, target_orientation], dim=-1)
+    left_ik_commands = torch.cat([target_position_left, target_orientation_left], dim=-1)
+    right_ik_commands = torch.zeros(
+        scene.num_envs, diff_ik_controller_right.action_dim, device=robot.device
+    )
+    right_ik_commands = torch.cat([target_position_right, target_orientation_right], dim=-1)
 
     # Specify robot-specific parameters
     left_arm_entity_cfg = SceneEntityCfg(
@@ -182,6 +211,10 @@ def run_simulator(sim: sim_utils.SimulationContext, scene: InteractiveScene):
             "The number of left and right gripper joints should be the same."
         )
 
+    # Define torso entity configuration
+    torso_entity_cfg = SceneEntityCfg("robot", joint_names=["torso_joint.*"])
+    torso_entity_cfg.resolve(scene)
+
     print("-------------------------------------------------")
     print("left body_ids: ", left_arm_entity_cfg.body_ids)
     print("left joint_ids: ", left_arm_joint_ids)
@@ -200,10 +233,18 @@ def run_simulator(sim: sim_utils.SimulationContext, scene: InteractiveScene):
     sim_dt = sim.get_physics_dt()
     count = 0
     # Simulation loop
+    min_torso_joint_value = np.array([0.0, 0.0, 0.0, 0.0])  # 设置初始值为0
+
     while simulation_app.is_running():
-        target_position, target_orientation = target_frame.get_local_poses()
-        left_ik_commands = torch.cat([target_position, target_orientation], dim=-1)
-        diff_ik_controller.set_command(left_ik_commands)
+        target_position_left, target_orientation_left = target_frame_left.get_local_poses()
+        target_position_right, target_orientation_right = target_frame_right.get_local_poses()
+        left_ik_commands = torch.cat([target_position_left, target_orientation_left], dim=-1)
+        right_ik_commands = torch.cat([target_position_right, target_orientation_right], dim=-1)
+        diff_ik_controller_left.set_command(left_ik_commands)
+        diff_ik_controller_right.set_command(right_ik_commands)
+        torso_joint_position = min_torso_joint_value
+        target_position_torso = torch.tensor(torso_joint_position,dtype=torch.float32, device="cuda:0")
+        robot.set_joint_position_target(target_position_torso, joint_ids=torso_entity_cfg.joint_ids)
 
         # obtain quantities from simulation
         left_jacobian = robot.root_physx_view.get_jacobians()[
@@ -222,15 +263,35 @@ def run_simulator(sim: sim_utils.SimulationContext, scene: InteractiveScene):
             left_ee_pose_w[:, 3:7],
         )
         # compute the joint commands
-        left_joint_pos_des = diff_ik_controller.compute(
+        left_joint_pos_des = diff_ik_controller_left.compute(
             left_ee_pos_b, left_ee_quat_b, left_jacobian, left_joint_pos
         )
-
+        right_jacobian = robot.root_physx_view.get_jacobians()[
+            :, right_ee_jacobi_idx, :, right_arm_entity_cfg.joint_ids
+        ]
+        right_ee_pose_w = robot.data.body_state_w[
+            :, right_arm_entity_cfg.body_ids[0], 0:7
+        ]
+        root_pose_w = robot.data.root_state_w[:, 0:7]
+        right_joint_pos = robot.data.joint_pos[:, right_arm_entity_cfg.joint_ids]
+        # compute frame in root frame
+        right_ee_pos_b, right_ee_quat_b = subtract_frame_transforms(
+            root_pose_w[:, 0:3],
+            root_pose_w[:, 3:7],
+            right_ee_pose_w[:, 0:3],
+            right_ee_pose_w[:, 3:7],
+        )
+        # compute the joint commands
+        right_joint_pos_des = diff_ik_controller_right.compute(
+            right_ee_pos_b, right_ee_quat_b, right_jacobian, right_joint_pos
+        )
         # print(f"{count} target pose: {target_position}, {target_orientation}")
-
         # apply arm actions
         robot.set_joint_position_target(
-            left_joint_pos_des, joint_ids=left_arm_entity_cfg.joint_ids
+            left_joint_pos_des,joint_ids=left_arm_entity_cfg.joint_ids
+        )
+        robot.set_joint_position_target(
+            right_joint_pos_des, joint_ids=right_arm_entity_cfg.joint_ids
         )
 
         # apply gripper actions
@@ -260,7 +321,14 @@ def run_simulator(sim: sim_utils.SimulationContext, scene: InteractiveScene):
             left_ik_commands[:, 0:3] + scene.env_origins, left_ik_commands[:, 3:7]
         )
 
-
+        right_ee_pose_w = robot.data.body_state_w[
+            :, right_arm_entity_cfg.body_ids[0], 0:7
+        ]
+        # update marker positions
+        right_ee_marker.visualize(right_ee_pose_w[:, 0:3], right_ee_pose_w[:, 3:7])
+        right_goal_marker.visualize(
+            right_ik_commands[:, 0:3] + scene.env_origins, right_ik_commands[:, 3:7]
+        )
 def main():
     """Main function."""
     # Load kit helper
