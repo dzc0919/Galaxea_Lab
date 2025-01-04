@@ -63,7 +63,7 @@ from omni.isaac.lab.utils.math import subtract_frame_transforms
 # Pre-defined configs
 ##
 from omni.isaac.lab_assets import (
-    GALAXEA_R1_FIXBASE_HIGH_PD_CFG,
+    GALAXEA_R1_IK_HIGH_PD_CFG,
     GALAXEA_R1_HIGH_PD_GRIPPER_CFG,
 )  # isort:skip
 
@@ -108,7 +108,7 @@ class IkSceneCfg(InteractiveSceneCfg):
     )
     # articulation
     if args_cli.robot == "R1":
-        robot = GALAXEA_R1_FIXBASE_HIGH_PD_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
+        robot = GALAXEA_R1_IK_HIGH_PD_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
     else:
         raise ValueError(
             f"Robot {args_cli.robot} is not supported. Valid: R1, R1StrongGripper"
@@ -212,8 +212,8 @@ def run_simulator(sim: sim_utils.SimulationContext, scene: InteractiveScene):
         )
 
     # Define torso entity configuration
-    torso_entity_cfg = SceneEntityCfg("robot", joint_names=["torso_joint.*"])
-    torso_entity_cfg.resolve(scene)
+    # torso_entity_cfg = SceneEntityCfg("robot", joint_names=["torso_joint.*"])
+    # torso_entity_cfg.resolve(scene)
 
     print("-------------------------------------------------")
     print("left body_ids: ", left_arm_entity_cfg.body_ids)
@@ -233,7 +233,7 @@ def run_simulator(sim: sim_utils.SimulationContext, scene: InteractiveScene):
     sim_dt = sim.get_physics_dt()
     count = 0
     # Simulation loop
-    min_torso_joint_value = np.array([0.0, 0.0, 0.0, 0.0])  # 设置初始值为0
+    # min_torso_joint_value = np.array([0.0, 0.0, 0.0, 0.0])  # 设置初始值为0
 
     while simulation_app.is_running():
         target_position_left, target_orientation_left = target_frame_left.get_local_poses()
@@ -242,9 +242,9 @@ def run_simulator(sim: sim_utils.SimulationContext, scene: InteractiveScene):
         right_ik_commands = torch.cat([target_position_right, target_orientation_right], dim=-1)
         diff_ik_controller_left.set_command(left_ik_commands)
         diff_ik_controller_right.set_command(right_ik_commands)
-        torso_joint_position = min_torso_joint_value
-        target_position_torso = torch.tensor(torso_joint_position,dtype=torch.float32, device="cuda:0")
-        robot.set_joint_position_target(target_position_torso, joint_ids=torso_entity_cfg.joint_ids)
+        # torso_joint_position = min_torso_joint_value
+        # target_position_torso = torch.tensor(torso_joint_position,dtype=torch.float32, device="cuda:0")
+        # robot.set_joint_position_target(target_position_torso, joint_ids=torso_entity_cfg.joint_ids)
 
         # obtain quantities from simulation
         left_jacobian = robot.root_physx_view.get_jacobians()[

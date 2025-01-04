@@ -109,9 +109,6 @@ def run_simulator(sim: sim_utils.SimulationContext, scene: InteractiveScene):
     wheel_motor_entity_cfg.resolve(scene)
     # Obtain the frame index of the end-effector
     # For a fixed base robot, the frame index is one less than the body index. This is because
-    # the root body is not included in the returned Jacobians.
-    print("robot.is_fixed_base: ", robot.is_fixed_base)
-    # get left/right gripper joint ids
 
     sim_dt = sim.get_physics_dt()
     count = 0
@@ -119,7 +116,7 @@ def run_simulator(sim: sim_utils.SimulationContext, scene: InteractiveScene):
     min_torso_joint_value = np.array([0, 0, 0, 0]) / 180.0 * np.pi *100
     steer_joint_value = np.array([0.9250663955407291, 0.7346690973447606, 0.6716847170203316]) /2
     zero_steer_joint_value = np.array([0.0, 0.0, 0.0])
-    wheel_joint_value = np.array([0.2692006686470151, 0.32073197533142844, 0.2555014677061562])*130
+    wheel_joint_value = np.array([0.2692006686470151, 0.32073197533142844, 0.2555014677061562])*80
     wheel_joint_velocity = wheel_joint_value
 
     target_velocity_wheel = torch.tensor(wheel_joint_velocity,dtype=torch.float32, device="cuda:0")
@@ -139,7 +136,6 @@ def run_simulator(sim: sim_utils.SimulationContext, scene: InteractiveScene):
         robot.set_joint_position_target(target_position_torso, joint_ids=torso_entity_cfg.joint_ids)
         robot.set_joint_position_target(target_position_steer, joint_ids=steer_motor_entity_cfg.joint_ids)
 
-        print("target_velocity_wheel: ", target_velocity_wheel)
         scene.write_data_to_sim()
         sim.step()
         scene.update(sim_dt)
