@@ -113,7 +113,7 @@ GALAXEA_R1_CFG = ArticulationCfg(
 )
 GALAXEA_R1_FIXBASE_CFG = ArticulationCfg(
     spawn=sim_utils.UsdFileCfg(
-        usd_path=f"{ISAACLAB_ASSETS_DATA_DIR}/Robots/Galaxea/try.usd",
+        usd_path=f"{ISAACLAB_ASSETS_DATA_DIR}/Robots/Galaxea/r1_v2_1_0_fixbase.usd",
         rigid_props=sim_utils.RigidBodyPropertiesCfg(
             disable_gravity=False,
             max_depenetration_velocity=5.0,
