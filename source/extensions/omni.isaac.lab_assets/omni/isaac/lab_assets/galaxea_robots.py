@@ -17,7 +17,7 @@ from omni.isaac.lab_assets import ISAACLAB_ASSETS_DATA_DIR
 
 GALAXEA_R1_CFG = ArticulationCfg(
     spawn=sim_utils.UsdFileCfg(
-        usd_path=f"{ISAACLAB_ASSETS_DATA_DIR}/Robots/Galaxea/r1_v2_1_0_wheel_moved.usd",
+        usd_path=f"{ISAACLAB_ASSETS_DATA_DIR}/Robots/Galaxea/r1_DVT_colored.usd",
         rigid_props=sim_utils.RigidBodyPropertiesCfg(
             disable_gravity=False,
             retain_accelerations=False,
