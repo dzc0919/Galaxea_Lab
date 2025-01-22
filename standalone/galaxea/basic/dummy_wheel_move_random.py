@@ -8,7 +8,7 @@
 
 import argparse
 import time
-
+import random
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -45,6 +45,7 @@ from omni.isaac.lab.utils import configclass
 from omni.isaac.lab.utils.assets import ISAAC_NUCLEUS_DIR
 from omni.isaac.lab.utils.math import subtract_frame_transforms
 
+
 ##
 # Pre-defined configs
 ##
@@ -77,7 +78,8 @@ class IkSceneCfg(InteractiveSceneCfg):
         raise ValueError(
             f"Robot {args_cli.robot} is not supported. Valid: R1, R1StrongGripper"
         )
-import random
+
+
 
 def run_simulator(sim: sim_utils.SimulationContext, scene: InteractiveScene):
     robot = scene["robot"]

@@ -24,6 +24,7 @@ from omni.isaac.lab.controllers import (
     DifferentialIKController,
     DifferentialIKControllerCfg,
 )
+from scipy.spatial.transform import Rotation as R
 
 from omni.isaac.lab.sim.spawners.from_files import GroundPlaneCfg, spawn_ground_plane
 import math
@@ -34,6 +35,18 @@ from .lift_env_cfg import (
     R1LiftBinRelEnvCfg,
     R1MultiFruitAbsEnvCfg,
 )
+import rospy
+from geometry_msgs.msg import PoseStamped
+from std_msgs.msg import Float32MultiArray
+import threading
+from sensor_msgs.msg import JointState
+from std_msgs.msg import String
+import tf2_ros
+import tf
+from geometry_msgs.msg import TransformStamped
+import geometry_msgs.msg
+from tf2_ros import Buffer, TransformListener
+import numpy as np
 
 class R1MultiFruitEnv(DirectRLEnv):
     # pre-physics step calls
@@ -114,7 +127,6 @@ class R1MultiFruitEnv(DirectRLEnv):
         # left/right arm/gripper joint ids
         self._setup_robot()
         # ik controller
-        self._setup_ik_controller()
 
         self.succ = torch.zeros(self.num_envs, dtype=torch.bool, device=self.device)
         self.dt = self.cfg.sim.dt * self.cfg.decimation
@@ -123,6 +135,9 @@ class R1MultiFruitEnv(DirectRLEnv):
         self.init_pos = torch.zeros(size=(self.num_envs, 3), device=self.device)
 
         print("R1LiftEnv is initialized. ActionType: ", self.action_type)
+        self.extracted_msg_left = None
+        self.extracted_msg_right = None
+        self.init_ros_publisher()
 
     def _setup_scene(self):
         self._object = [0]*4 
@@ -461,11 +476,139 @@ class R1MultiFruitEnv(DirectRLEnv):
             self._translate_gripper_state_to_joints(l_gripper_action, r_gripper_action)
 
             # compute arm joint position using differential IK
-            self._compute_arm_joints(l_arm_actions, r_arm_actions)
+            # print("l_arm_actions:", l_arm_actions)
+            # print("r_arm_actions:", r_arm_actions)
+            # self._compute_arm_joints(l_arm_actions, r_arm_actions)
+            self._compute_arm_joints_relaxik(l_arm_actions, r_arm_actions)
 
             # clamp the joint position targets
         else:
             raise ValueError(f"Unknown action type '{self.action_type}'")
+
+    def init_ros_publisher(self):
+        rospy.init_node('isaac_sim_target_publisher', anonymous=True)
+        self.pub_l_ee = rospy.Publisher('/motion_target/target_pose_arm_left', PoseStamped, queue_size=10)
+        self.pub_r_ee = rospy.Publisher('/motion_target/target_pose_arm_right', PoseStamped, queue_size=10)
+        rospy.Subscriber("/relaxed_ik/joint_angle_solutions_right", JointState, self.joint_angle_right_callback)
+        rospy.Subscriber("/relaxed_ik/joint_angle_solutions_left", JointState, self.joint_angle_left_callback)
+
+    def joint_angle_right_callback(self, msg):
+        """右臂角度回调函数"""
+        self.extracted_msg_right = msg.position
+
+    def joint_angle_left_callback(self, msg):
+        """左臂角度回调函数"""
+        self.extracted_msg_left = msg.position
+    def pose_to_matrix(self,pos, quat):
+        """
+        Convert position and quaternion to a homogeneous transformation matrix.
+        
+        Args:
+            pos (list or np.array): [x, y, z] position.
+            quat (list or np.array): [qx, qy, qz, qw] quaternion.
+        
+        Returns:
+            np.array: 4x4 transformation matrix.
+        """
+        # Create a 3x3 rotation matrix from quaternion
+        rot_matrix = R.from_quat(quat).as_matrix()
+        
+        # Create a 4x4 homogeneous transformation matrix
+        matrix = np.eye(4)
+        matrix[:3, :3] = rot_matrix
+        matrix[:3, 3] = pos
+        
+        return matrix
+
+    def matrix_to_pose(self,matrix):
+        """
+        Convert a homogeneous transformation matrix to position and quaternion.
+        
+        Args:
+            matrix (np.array): 4x4 transformation matrix.
+        
+        Returns:
+            tuple: (position, quaternion)
+        """
+        pos = matrix[:3, 3]
+        rot = R.from_matrix(matrix[:3, :3])
+        quat = rot.as_quat()  # [qx, qy, qz, qw]
+        return pos, quat
+    
+
+    def _compute_arm_joints_relaxik(self, l_arm_actions: torch.Tensor, r_arm_actions: torch.Tensor):
+        base_link_id = self._robot.data.body_names.index("base_link")
+        left_arm_base_link = self._robot.data.body_names.index("left_arm_base_link")
+        right_arm_base_link = self._robot.data.body_names.index("right_arm_base_link")
+        
+        body_pos = self._robot.data.body_pos_w.squeeze(0)
+        body_quat = self._robot.data.body_quat_w.squeeze(0)
+        base_link_pos = body_pos[base_link_id].cpu().numpy()
+        base_link_quat = body_quat[base_link_id].cpu().numpy()
+        base_link_quat = np.roll(base_link_quat, shift=-1)
+        
+        left_arm_base_link_pos = body_pos[left_arm_base_link].cpu().numpy()
+        left_arm_base_link_quat = body_quat[left_arm_base_link].cpu().numpy()
+        left_arm_base_link_quat = np.roll(left_arm_base_link_quat, shift=-1) 
+        
+        right_arm_base_link_pos = body_pos[right_arm_base_link].cpu().numpy()
+        right_arm_base_link_quat = body_quat[right_arm_base_link].cpu().numpy()
+        right_arm_base_link_quat = np.roll(right_arm_base_link_quat, shift=-1)
+        # r_arm_actions = (r_arm_actions[0,:3], r_arm_actions[0,3:])
+        target_position_right = r_arm_actions[0,:3].cpu().numpy()
+        target_orientation_right = r_arm_actions[0,3:].cpu().numpy()
+        target_orientation_right = np.roll(target_orientation_right, shift=-1)
+        print("target_orientation_right: ", target_orientation_right)
+        target_position_left = l_arm_actions[0,:3].cpu().numpy()
+        target_orientation_left = l_arm_actions[0,3:].cpu().numpy()
+        target_orientation_left = np.roll(target_orientation_left, shift=-1)
+        print("target_orientation_left: ", target_orientation_left)
+        left_arm_matrix = self.pose_to_matrix(left_arm_base_link_pos, left_arm_base_link_quat)
+        right_arm_matrix = self.pose_to_matrix(right_arm_base_link_pos, right_arm_base_link_quat)
+        target_left_matrix = self.pose_to_matrix(target_position_left, target_orientation_left)
+        target_right_matrix = self.pose_to_matrix(target_position_right, target_orientation_right)
+
+        # 计算逆变换
+        left_arm_inv = np.linalg.inv(left_arm_matrix)
+        right_arm_inv = np.linalg.inv(right_arm_matrix)
+
+        # 计算相对变换
+        left_arm_to_target = np.dot(left_arm_inv, target_left_matrix)
+        right_arm_to_target = np.dot(right_arm_inv, target_right_matrix)
+
+        left_trans, left_rot = self.matrix_to_pose(left_arm_to_target)
+        right_trans, right_rot = self.matrix_to_pose(right_arm_to_target)
+        # 确保 right_trans 和 right_rot 都是可以拼接的
+        r_arm_actions = torch.cat((torch.tensor(right_trans, device=self.device), torch.tensor(right_rot, device=self.device))).view(1, -1)
+        l_arm_actions = torch.cat((torch.tensor(left_trans, device=self.device), torch.tensor(left_rot, device=self.device))).view(1, -1)
+        # breakpoint()
+
+        self._pub_ee_to_relaxik(l_arm_actions, self.pub_l_ee)
+        self._pub_ee_to_relaxik(r_arm_actions, self.pub_r_ee)
+        if self.extracted_msg_right is not None:
+            self.right_arm_joint_pos_target = torch.tensor(self.extracted_msg_right, device=self.device).view(1, -1)
+        if self.extracted_msg_left is not None:
+            # print("self.extracted_msg_left: ", self.extracted_msg_left)
+            self.left_arm_joint_pos_target = torch.tensor(self.extracted_msg_left, device=self.device).view(1, -1)
+            # print("self.left_arm_joint_pos_target: ", self.left_arm_joint_pos_target)
+        # breakpoint()
+
+
+
+
+    def _pub_ee_to_relaxik(self, arm_actions: torch.Tensor, pub: rospy.Publisher):
+        arm_pose_stamp = PoseStamped()
+        arm_pose_stamp.header.frame_id = "base_link"
+        arm_pose_stamp.pose.position.x = arm_actions[0, 0].item()
+        arm_pose_stamp.pose.position.y = arm_actions[0, 1].item()
+        arm_pose_stamp.pose.position.z = arm_actions[0, 2].item()
+        arm_pose_stamp.pose.orientation.x = arm_actions[0, 3].item()
+        arm_pose_stamp.pose.orientation.y = arm_actions[0, 4].item()
+        arm_pose_stamp.pose.orientation.z = arm_actions[0, 5].item()
+        arm_pose_stamp.pose.orientation.w = arm_actions[0, 6].item()
+        pub.publish(arm_pose_stamp)
+
+
 
     def _object_reached_goal(self):
         object_curr_pos = self._object[self.object_id].data.root_pos_w[:, :3]
@@ -495,20 +638,7 @@ class R1MultiFruitEnv(DirectRLEnv):
         distance = torch.norm(goal_pos_w - object_pos_w, dim=-1)
         return distance
 
-    def _setup_ik_controller(self):
-        if self.cfg.action_type == "ik_abs":
-            # absolute mode, action_dim is 7: x, y, z, qw, qx, qy, qz
-            use_relative_mode = False
-        elif self.cfg.action_type == "ik_rel":
-            # relative mode, action_dim is 6: dx, dy, dz, droll, dpitch, dyaw
-            use_relative_mode = True
-        else:
-            print(
-                "ActionType is {}, NO need to create IK controllers".format(
-                    self.cfg.action_type
-                )
-            )
-            return
+
 
         diff_ik_cfg = DifferentialIKControllerCfg(
             command_type="pose", use_relative_mode=use_relative_mode, ik_method="dls"
@@ -573,39 +703,39 @@ class R1MultiFruitEnv(DirectRLEnv):
 
         return right_jacobian
 
-    def _compute_arm_joints(
-        self, l_arm_actions: torch.Tensor, r_arm_actions: torch.Tensor
-    ):
-        # process arm action
-        l_ee_pose_curr, l_ee_quat_curr, r_ee_pose_curr, r_ee_quat_curr = (
-            self._compute_frame_pose()
-        )
-        self.l_diff_ik_controller.set_command(
-            l_arm_actions, l_ee_pose_curr, l_ee_quat_curr
-        )
-        self.r_diff_ik_controller.set_command(
-            r_arm_actions, r_ee_pose_curr, r_ee_quat_curr
-        )
-        l_joint_pos_curr = self._robot.data.joint_pos[:, self.left_arm_joint_ids]
-        r_joint_pos_curr = self._robot.data.joint_pos[:, self.right_arm_joint_ids]
+    # def _compute_arm_joints(
+    #     self, l_arm_actions: torch.Tensor, r_arm_actions: torch.Tensor
+    # ):
+    #     # process arm action
+    #     l_ee_pose_curr, l_ee_quat_curr, r_ee_pose_curr, r_ee_quat_curr = (
+    #         self._compute_frame_pose()
+    #     )
+    #     self.l_diff_ik_controller.set_command(
+    #         l_arm_actions, l_ee_pose_curr, l_ee_quat_curr
+    #     )
+    #     self.r_diff_ik_controller.set_command(
+    #         r_arm_actions, r_ee_pose_curr, r_ee_quat_curr
+    #     )
+    #     l_joint_pos_curr = self._robot.data.joint_pos[:, self.left_arm_joint_ids]
+    #     r_joint_pos_curr = self._robot.data.joint_pos[:, self.right_arm_joint_ids]
 
-        if l_ee_quat_curr.norm() != 0:
-            l_jacobian = self._compute_left_ee_jacobian()
-            self.left_arm_joint_pos_target = self.l_diff_ik_controller.compute(
-                l_ee_pose_curr, l_ee_quat_curr, l_jacobian, l_joint_pos_curr
-            )
-        else:
-            print("use current joint position")
-            self.left_arm_joint_pos_target = l_joint_pos_curr.clone()
+    #     if l_ee_quat_curr.norm() != 0:
+    #         l_jacobian = self._compute_left_ee_jacobian()
+    #         self.left_arm_joint_pos_target = self.l_diff_ik_controller.compute(
+    #             l_ee_pose_curr, l_ee_quat_curr, l_jacobian, l_joint_pos_curr
+    #         )
+    #     else:
+    #         print("use current joint position")
+    #         self.left_arm_joint_pos_target = l_joint_pos_curr.clone()
 
-        if r_ee_quat_curr.norm() != 0:
-            r_jacobian = self._compute_right_ee_jacobian()
-            self.right_arm_joint_pos_target = self.r_diff_ik_controller.compute(
-                r_ee_pose_curr, r_ee_quat_curr, r_jacobian, r_joint_pos_curr
-            )
-        else:
-            print("use current joint position")
-            self.right_arm_joint_pos_target = r_joint_pos_curr.clone()
+    #     if r_ee_quat_curr.norm() != 0:
+    #         r_jacobian = self._compute_right_ee_jacobian()
+    #         self.right_arm_joint_pos_target = self.r_diff_ik_controller.compute(
+    #             r_ee_pose_curr, r_ee_quat_curr, r_jacobian, r_joint_pos_curr
+    #         )
+    #     else:
+    #         print("use current joint position")
+    #         self.right_arm_joint_pos_target = r_joint_pos_curr.clone()
 
     # @torch.jit.script
     def _translate_gripper_state_to_joints(

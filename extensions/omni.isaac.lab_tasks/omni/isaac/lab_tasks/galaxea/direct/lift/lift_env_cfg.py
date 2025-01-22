@@ -12,7 +12,7 @@ from omni.isaac.lab.assets import (
     AssetBaseCfg,
 )
 from omni.isaac.lab_assets import (
-    GALAXEA_R1_HIGH_PD_CFG,
+    GALAXEA_R1_FIXBASE_HIGH_PD_CFG,
     GALAXEA_R1_HIGH_PD_GRIPPER_CFG,
     GALAXEA_CAMERA_CFG,
     DEX_CUBE_CFG,
@@ -74,7 +74,7 @@ class R1LiftEnvCfg(DirectRLEnvCfg):
     
 
     # robot
-    robot_cfg: ArticulationCfg = GALAXEA_R1_HIGH_PD_CFG.replace(
+    robot_cfg: ArticulationCfg = GALAXEA_R1_FIXBASE_HIGH_PD_CFG.replace(
         prim_path="/World/envs/env_.*/Robot"
     )
 
@@ -83,12 +83,12 @@ class R1LiftEnvCfg(DirectRLEnvCfg):
     left_ee_marker_cfg.markers["frame"].scale = (0.1, 0.1, 0.1)
     left_ee_marker_cfg.prim_path = "/Visuals/FrameTransformer/LeftEE"
     left_ee_frame_cfg: FrameTransformerCfg = FrameTransformerCfg(
-        prim_path="/World/envs/env_.*/Robot/base_link",
+        prim_path="/World/envs/env_.*/Robot/r1_v2_1_0/base_link",
         debug_vis=debug_vis,
         visualizer_cfg=left_ee_marker_cfg,
         target_frames=[
             FrameTransformerCfg.FrameCfg(
-                prim_path="/World/envs/env_.*/Robot/left_arm_link6",
+                prim_path="/World/envs/env_.*/Robot/r1_v2_1_0/left_arm_link6",
                 name="left_ee",
                 offset=OffsetCfg(
                     pos=(0.0, 0.0, 0.15),  # offset from the link6 to the gripper tip
@@ -101,12 +101,12 @@ class R1LiftEnvCfg(DirectRLEnvCfg):
     right_ee_marker_cfg.markers["frame"].scale = (0.1, 0.1, 0.1)
     right_ee_marker_cfg.prim_path = "/Visuals/FrameTransformer/RightEE"
     right_ee_frame_cfg: FrameTransformerCfg = FrameTransformerCfg(
-        prim_path="/World/envs/env_.*/Robot/base_link",
+        prim_path="/World/envs/env_.*/Robot/r1_v2_1_0/base_link",
         debug_vis=debug_vis,
         visualizer_cfg=right_ee_marker_cfg,
         target_frames=[
             FrameTransformerCfg.FrameCfg(
-                prim_path="/World/envs/env_.*/Robot/right_arm_link6",
+                prim_path="/World/envs/env_.*/Robot/r1_v2_1_0/right_arm_link6",
                 name="right_ee",
                 offset=OffsetCfg(
                     pos=(0.0, 0.0, 0.15),  # offset from the link6 to the gripper tip
@@ -117,7 +117,7 @@ class R1LiftEnvCfg(DirectRLEnvCfg):
 
     # camera
     front_camera_cfg: CameraCfg = GALAXEA_CAMERA_CFG.replace(
-        prim_path="/World/envs/env_.*/Robot/torso_link4/front_camera",
+        prim_path="/World/envs/env_.*/Robot/r1_v2_1_0/torso_link4/front_camera",
         height=240,
         width=320,
         offset=CameraCfg.OffsetCfg(
@@ -128,7 +128,7 @@ class R1LiftEnvCfg(DirectRLEnvCfg):
     )
 
     left_wrist_camera_cfg: CameraCfg = GALAXEA_CAMERA_CFG.replace(
-        prim_path="/World/envs/env_.*/Robot/left_arm_link6/left_wrist_camera",
+        prim_path="/World/envs/env_.*/Robot/r1_v2_1_0/left_arm_link6/left_wrist_camera",
         height=240,
         width=320,
         offset=CameraCfg.OffsetCfg(
@@ -138,7 +138,7 @@ class R1LiftEnvCfg(DirectRLEnvCfg):
         ),
     )
     right_wrist_camera_cfg: CameraCfg = left_wrist_camera_cfg.replace(
-        prim_path="/World/envs/env_.*/Robot/right_arm_link6/right_wrist_camera",
+        prim_path="/World/envs/env_.*/Robot/r1_v2_1_0/right_arm_link6/right_wrist_camera",
     )
 
     # visualization markers

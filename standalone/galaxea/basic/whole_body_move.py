@@ -96,7 +96,7 @@ def run_simulator(sim: sim_utils.SimulationContext, scene: InteractiveScene):
     min_torso_joint_value = np.array([0.0, 0.0, 0.0, 0.0])  # 设置初始值为0
     steer_joint_value = np.array([0.9250663955407291, 0.7346690973447606, 0.6716847170203316]) /2
     zero_steer_joint_value = np.array([0.0, 0.0, 0.0])
-    wheel_joint_value = np.array([0.2692006686470151, 0.32073197533142844, 0.2555014677061562])*70
+    wheel_joint_value = np.array([0.2692006686470151, 0.32073197533142844, 0.2555014677061562])*50
     wheel_joint_velocity = wheel_joint_value
     target_velocity_wheel = torch.tensor(wheel_joint_velocity,dtype=torch.float32, device="cuda:0")
     robot.set_joint_velocity_target(target_velocity_wheel, joint_ids=wheel_motor_entity_cfg.joint_ids)

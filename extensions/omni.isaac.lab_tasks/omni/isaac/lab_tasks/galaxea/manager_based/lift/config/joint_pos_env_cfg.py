@@ -22,9 +22,9 @@ from omni.isaac.lab_tasks.galaxea.manager_based.lift.lift_env_cfg import LiftEnv
 # Pre-defined configs
 ##
 from omni.isaac.lab.markers.config import FRAME_MARKER_CFG  # isort: skip
-from omni.isaac.lab_assets import GALAXEA_R1_HIGH_PD_CFG, GALAXEA_R1_HIGH_PD_GRIPPER_CFG
+from omni.isaac.lab_assets import GALAXEA_R1_FIXBASE_HIGH_PD_CFG, GALAXEA_R1_HIGH_PD_GRIPPER_CFG
 from omni.isaac.lab_assets import (
-    GALAXEA_R1_HIGH_PD_CFG,
+    GALAXEA_R1_FIXBASE_HIGH_PD_CFG,
     GALAXEA_R1_HIGH_PD_GRIPPER_CFG,
     GALAXEA_CAMERA_CFG,
     DEX_CUBE_CFG,
@@ -184,7 +184,7 @@ class R1LiftCubeEnvCfg(R1LiftEnvCfg):
         # post init of parent
         super().__post_init__()
 
-        self.scene.robot = GALAXEA_R1_HIGH_PD_CFG.replace(
+        self.scene.robot = GALAXEA_R1_FIXBASE_HIGH_PD_CFG.replace(
             prim_path="{ENV_REGEX_NS}/Robot"
         )
 

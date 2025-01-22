@@ -17,7 +17,7 @@ from omni.isaac.lab_assets import ISAACLAB_ASSETS_DATA_DIR
 
 GALAXEA_R1_CFG = ArticulationCfg(
     spawn=sim_utils.UsdFileCfg(
-        usd_path=f"{ISAACLAB_ASSETS_DATA_DIR}/Robots/Galaxea/r1_v2_1_0_wheel_moved.usd",
+        usd_path=f"{ISAACLAB_ASSETS_DATA_DIR}/Robots/Galaxea/r1_v2_1_0_wheel_moved_colored.usd",
         rigid_props=sim_utils.RigidBodyPropertiesCfg(
             disable_gravity=False,
             retain_accelerations=False,
@@ -42,16 +42,16 @@ GALAXEA_R1_CFG = ArticulationCfg(
             "left_arm_joint4": 0.0,
             "left_arm_joint5": 1.57,
             "left_arm_joint6": 0.0,
-            # "left_gripper_finger_joint1": 0.03,
-            # "left_gripper_finger_joint2": 0.03,
+            "left_gripper_finger_joint1": 0.03,
+            "left_gripper_finger_joint2": 0.03,
             "right_arm_joint1": 0.0,
             "right_arm_joint2": 2.0,
             "right_arm_joint3": -1.57,
             "right_arm_joint4": 0.0,
             "right_arm_joint5": -1.57,
             "right_arm_joint6": 0.0,
-            # "right_gripper_finger_joint1": 0.03,
-            # "right_gripper_finger_joint2": 0.03,
+            "right_gripper_finger_joint1": 0.03,
+            "right_gripper_finger_joint2": 0.03,
             "torso_joint1": 0.0,
             "torso_joint2": 0.0,
             "torso_joint3": 0.0,
@@ -80,13 +80,13 @@ GALAXEA_R1_CFG = ArticulationCfg(
             stiffness=80.0,
             damping=4.0,
         ),
-        # "r1_grippers": ImplicitActuatorCfg(
-        #     joint_names_expr=[".*_gripper_.*"],
-        #     effort_limit=200.0,
-        #     velocity_limit=0.25,
-        #     stiffness=1e6,  # 1e7,
-        #     damping=1e4,  # 1e5,
-        # ),
+        "r1_grippers": ImplicitActuatorCfg(
+            joint_names_expr=[".*_gripper_.*"],
+            effort_limit=200.0,
+            velocity_limit=0.25,
+            stiffness=1e6,  # 1e7,
+            damping=1e4,  # 1e5,
+        ),
         "r1_torso": ImplicitActuatorCfg(
             joint_names_expr=["torso_joint.*"],
             effort_limit=1000.0,
@@ -113,7 +113,7 @@ GALAXEA_R1_CFG = ArticulationCfg(
 )
 GALAXEA_R1_FIXBASE_CFG = ArticulationCfg(
     spawn=sim_utils.UsdFileCfg(
-        usd_path=f"{ISAACLAB_ASSETS_DATA_DIR}/Robots/Galaxea/r1_v2_1_0_fixbase.usd",
+        usd_path=f"{ISAACLAB_ASSETS_DATA_DIR}/Robots/Galaxea/r1_v2_1_0_fixbase_colored.usd",
         rigid_props=sim_utils.RigidBodyPropertiesCfg(
             disable_gravity=False,
             max_depenetration_velocity=5.0,
@@ -196,8 +196,8 @@ GALAXEA_R1_HIGH_PD_CFG.actuators["r1_wheels"].stiffness = 10000.0
 GALAXEA_R1_HIGH_PD_CFG.actuators["r1_wheels"].damping = 1000000
 
 GALAXEA_R1_HIGH_PD_GRIPPER_CFG = GALAXEA_R1_HIGH_PD_CFG.copy()
-# GALAXEA_R1_HIGH_PD_GRIPPER_CFG.actuators["r1_grippers"].stiffness = 1e3
-# GALAXEA_R1_HIGH_PD_GRIPPER_CFG.actuators["r1_grippers"].damping = 1e2
+GALAXEA_R1_HIGH_PD_GRIPPER_CFG.actuators["r1_grippers"].stiffness = 1e3
+GALAXEA_R1_HIGH_PD_GRIPPER_CFG.actuators["r1_grippers"].damping = 1e2
 
 GALAXEA_R1_FIXBASE_HIGH_PD_CFG = GALAXEA_R1_FIXBASE_CFG.copy()
 GALAXEA_R1_FIXBASE_HIGH_PD_CFG.spawn.rigid_props.disable_gravity = False
@@ -210,7 +210,7 @@ GALAXEA_R1_FIXBASE_HIGH_PD_CFG.actuators["r1_torso"].damping = 2000.0
 
 GALAXEA_R1_IK_CFG = ArticulationCfg(
     spawn=sim_utils.UsdFileCfg(
-        usd_path=f"{ISAACLAB_ASSETS_DATA_DIR}/Robots/Galaxea/r1_v2_1_0_fixbase.usd",
+        usd_path=f"{ISAACLAB_ASSETS_DATA_DIR}/Robots/Galaxea/r1_v2_1_0_fixbase_colored.usd",
         rigid_props=sim_utils.RigidBodyPropertiesCfg(
             disable_gravity=False,
             max_depenetration_velocity=5.0,
@@ -291,7 +291,7 @@ GALAXEA_R1_IK_HIGH_PD_CFG.actuators["r1_torso"].damping = 2000.0
 
 GALAXEA_R1_BASE_CFG = ArticulationCfg(
     spawn=sim_utils.UsdFileCfg(
-        usd_path=f"{ISAACLAB_ASSETS_DATA_DIR}/Robots/Galaxea/r1_v2_1_0_dummywheel.usd",
+        usd_path=f"{ISAACLAB_ASSETS_DATA_DIR}/Robots/Galaxea/r1_v2_1_0_dummywheel_colored.usd",
         rigid_props=sim_utils.RigidBodyPropertiesCfg(
             disable_gravity=False,
             max_depenetration_velocity=5.0,

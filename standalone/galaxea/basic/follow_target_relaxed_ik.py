@@ -82,7 +82,8 @@ class IkSceneCfg(InteractiveSceneCfg):
     target_frame_left = AssetBaseCfg(
         prim_path="{ENV_REGEX_NS}/TargetFrameLeft",
         spawn=sim_utils.CuboidCfg(
-            size=(0.1, 0.1, 0.1),
+            size=(0.04, 0.04, 0.04),
+            visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(1.0, 0.0, 0.0), metallic=0.2),
         ),
         init_state=AssetBaseCfg.InitialStateCfg(
             pos=(0.3864, 0.5237, 1.1475),
@@ -92,8 +93,8 @@ class IkSceneCfg(InteractiveSceneCfg):
     )
     target_frame_right = AssetBaseCfg(
         prim_path="{ENV_REGEX_NS}/TargetFrameRight",
-        spawn=sim_utils.SphereCfg(
-            radius=0.02,
+        spawn=sim_utils.CuboidCfg(
+            size=(0.04, 0.04, 0.04),
             visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(1.0, 0.0, 0.0), metallic=0.2),
         ),
         init_state=AssetBaseCfg.InitialStateCfg(
@@ -262,13 +263,13 @@ def run_simulator(sim: sim_utils.SimulationContext, scene: InteractiveScene, pub
         pub_tf(br, "base_link", base_link_pos, base_link_quat)
         pub_tf(br, "left_arm_base_link", left_arm_base_link_pos, left_arm_base_link_quat)
         pub_tf(br, "right_arm_base_link", right_arm_base_link_pos, right_arm_base_link_quat)
-        pub_tf(br, "target_frame_left", target_position_left, target_orientation_left)
+        pub_tf(br, "target_frame_left1", target_position_left, target_orientation_left)
         pub_tf(br, "target_frame_right", target_position_right, target_orientation_right)
 
         # rospy.sleep(0.1)
         # left_res = get_tf(buffer, "left_arm_base_link", "target_frame_left")
         right_trans, right_rot = get_tf(listener, "right_arm_base_link", "target_frame_right")
-        left_trans, left_rot = get_tf(listener, "left_arm_base_link", "target_frame_left")
+        left_trans, left_rot = get_tf(listener, "left_arm_base_link", "target_frame_left1")
         if right_trans is None or right_rot is None or left_trans is None or left_rot is None:
             continue
         # print("right_res: ", right_res)
@@ -281,7 +282,6 @@ def run_simulator(sim: sim_utils.SimulationContext, scene: InteractiveScene, pub
         # Publish the message
         pub_r.publish(pose_msg(right_trans, right_rot))
         pub_l.publish(pose_msg(left_trans,left_rot))
-
 
 
         # 使用全局变量 extracted_msg_global
@@ -322,22 +322,7 @@ def pose_msg(trans, rot):
     return target_msg
 
 
-def convert_to_right_hand_system(pose, quat):
-    # 假设 pose 是 [x, y, z]，quat 是 [x, y, z, w]
-    # 反转 x 分量来转换坐标系
-    new_pose = np.array([pose[0], -pose[1], pose[2]])
-    # 反转四元数的 x 分量来转换坐标系
-    quat = np.array(quat)
-    new_quat = np.array([-quat[0], quat[1], quat[2], quat[3]])
-    return new_pose, new_quat
 
-def convert_to_left_hand_system(pose, quat):
-    # 反转 x 分量来转换坐标系
-    new_pose = np.array([pose[0], -pose[1], pose[2]])
-    # 反转四元数的 x 分量来转换坐标系
-    quat = np.array(quat)
-    new_quat = np.array([-quat[0], quat[1], quat[2], quat[3]])
-    return new_pose, new_quat
 
     
 def pub_tf(br, link_name, pos, quat):
