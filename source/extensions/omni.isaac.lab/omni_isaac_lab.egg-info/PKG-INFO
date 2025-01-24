@@ -1,4 +1,4 @@
-Metadata-Version: 2.1
+Metadata-Version: 2.2
 Name: omni-isaac-lab
 Version: 0.19.4
 Summary: Extension providing main framework interfaces and abstractions for robot learning.
@@ -21,3 +21,12 @@ Requires-Dist: hidapi
 Requires-Dist: gymnasium==0.29.0
 Requires-Dist: trimesh
 Requires-Dist: pyglet<2
+Dynamic: author
+Dynamic: classifier
+Dynamic: home-page
+Dynamic: keywords
+Dynamic: license
+Dynamic: maintainer
+Dynamic: requires-dist
+Dynamic: requires-python
+Dynamic: summary

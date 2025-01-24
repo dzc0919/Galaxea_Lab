@@ -1,2 +1,4 @@
 /isaac-sim-asset*
 /dataset/*
+*.pyc
+__pycache__/
