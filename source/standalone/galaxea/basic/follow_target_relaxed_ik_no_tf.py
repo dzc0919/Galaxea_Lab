@@ -296,13 +296,15 @@ def run_simulator(sim: sim_utils.SimulationContext, scene: InteractiveScene, pub
         target_position_left = target_position_left.squeeze(0).cpu().numpy()
         target_orientation_left = target_orientation_left.squeeze(0).cpu().numpy()
         target_orientation_left = np.roll(target_orientation_left, shift=-1)
-        print("targrt_orientation_left: ", target_orientation_left)
+        # print("targrt_orientation_left: ", target_orientation_left)
         target_position_right, target_orientation_right = target_frame_right.get_world_poses()
+        print("target_position_right: ", target_position_right)
+        print("target_orientation_right: ", target_orientation_right)
         target_position_right = target_position_right.squeeze(0).cpu().numpy()
 
         target_orientation_right = target_orientation_right.squeeze(0).cpu().numpy()
         target_orientation_right = np.roll(target_orientation_right, shift=-1)
-        print("targrt_orientation_right: ", target_orientation_right)
+        # print("targrt_orientation_right: ", target_orientation_right)
         left_arm_matrix = pose_to_matrix(left_arm_base_link_pos, left_arm_base_link_quat)
         right_arm_matrix = pose_to_matrix(right_arm_base_link_pos, right_arm_base_link_quat)
         target_left_matrix = pose_to_matrix(target_position_left, target_orientation_left)
@@ -317,7 +319,7 @@ def run_simulator(sim: sim_utils.SimulationContext, scene: InteractiveScene, pub
         right_arm_to_target = np.dot(right_arm_inv, target_right_matrix)
 
         left_trans, left_rot = matrix_to_pose(left_arm_to_target)
-        print("left_rot: ", left_rot)
+        # print("left_rot: ", left_rot)
         right_trans, right_rot = matrix_to_pose(right_arm_to_target)
         
         

@@ -196,8 +196,8 @@ GALAXEA_R1_HIGH_PD_CFG.actuators["r1_wheels"].stiffness = 10000.0
 GALAXEA_R1_HIGH_PD_CFG.actuators["r1_wheels"].damping = 1000000
 
 GALAXEA_R1_HIGH_PD_GRIPPER_CFG = GALAXEA_R1_HIGH_PD_CFG.copy()
-GALAXEA_R1_HIGH_PD_GRIPPER_CFG.actuators["r1_grippers"].stiffness = 1e3
-GALAXEA_R1_HIGH_PD_GRIPPER_CFG.actuators["r1_grippers"].damping = 1e2
+GALAXEA_R1_HIGH_PD_GRIPPER_CFG.actuators["r1_grippers"].stiffness = 10000000
+GALAXEA_R1_HIGH_PD_GRIPPER_CFG.actuators["r1_grippers"].damping = 1000000
 
 GALAXEA_R1_FIXBASE_HIGH_PD_CFG = GALAXEA_R1_FIXBASE_CFG.copy()
 GALAXEA_R1_FIXBASE_HIGH_PD_CFG.spawn.rigid_props.disable_gravity = False
@@ -230,16 +230,16 @@ GALAXEA_R1_IK_CFG = ArticulationCfg(
             "left_arm_joint4": 0.0,
             "left_arm_joint5": 1.57,
             "left_arm_joint6": 0.0,
-            # "left_gripper_axis1": 0.03,
-            # "left_gripper_axis2": 0.03,
+            "left_gripper_finger_joint1": 0.03,
+            "left_gripper_finger_joint2": 0.03,
             "right_arm_joint1": 0.0,
             "right_arm_joint2": 0.0,
             "right_arm_joint3": -1.57,
             "right_arm_joint4": 0.0,
             "right_arm_joint5": -1.57,
             "right_arm_joint6": 0.0,
-            # "right_gripper_axis1": 0.03,
-            # "right_gripper_axis2": 0.03,
+            "right_gripper_finger_joint1": 0.03,
+            "right_gripper_finger_joint2": 0.03,
             "torso_joint1": 0.0,
             "torso_joint2": 0.0,
             "torso_joint3": 0.0,
@@ -268,13 +268,13 @@ GALAXEA_R1_IK_CFG = ArticulationCfg(
             stiffness=800.0,
             damping=40.0,
         ),
-        # "r1_grippers": ImplicitActuatorCfg(
-        #     joint_names_expr=[".*_gripper_axis.*"],
-        #     effort_limit=200.0,
-        #     velocity_limit=0.25,
-        #     stiffness=1e6,  # 1e7,
-        #     damping=1e4,  # 1e5,
-        # ),
+        "r1_grippers": ImplicitActuatorCfg(
+            joint_names_expr=[".*_gripper_.*"],
+            effort_limit=200.0,
+            velocity_limit=0.25,
+            stiffness=1e6,  # 1e7,
+            damping=1e4,  # 1e5,
+        ),
     },
     soft_joint_pos_limit_factor=1.0,
 )
@@ -287,6 +287,8 @@ GALAXEA_R1_IK_HIGH_PD_CFG.actuators["r1_eefs"].stiffness = 1000.0
 GALAXEA_R1_IK_HIGH_PD_CFG.actuators["r1_eefs"].damping = 200.0
 GALAXEA_R1_IK_HIGH_PD_CFG.actuators["r1_torso"].stiffness = 10000000000.0
 GALAXEA_R1_IK_HIGH_PD_CFG.actuators["r1_torso"].damping = 2000.0
+GALAXEA_R1_IK_HIGH_PD_CFG.actuators["r1_grippers"].stiffness = 10000000000.0
+GALAXEA_R1_IK_HIGH_PD_CFG.actuators["r1_grippers"].damping = 2000.0
 
 
 GALAXEA_R1_BASE_CFG = ArticulationCfg(
